@@ -13,11 +13,17 @@ icons/                192, 512, and maskable 512
 
 ## 1. Put it online
 
-A PWA has to be served over HTTPS — opening `index.html` from your filesystem will not install. Any static host works. Two easy paths:
+A PWA has to be served over HTTPS — opening `index.html` from your filesystem will not install.
 
-**Netlify drop:** go to app.netlify.com/drop and drag this folder in. Done in about thirty seconds, gives you a `*.netlify.app` URL.
+This repo is set up for **Netlify** and needs no build step. `netlify.toml` publishes the root as-is and sets the cache headers that matter: nothing here is content-hashed, so the shell files revalidate on every request. Without that the CDN keeps serving a stale `sw.js` and the `CACHE` bump never reaches installed devices.
 
-**GitHub Pages:** push the folder to a repo, then Settings → Pages → deploy from branch → root.
+The site is `ledger-credit-tracker.netlify.app`. To deploy, either connect this repo in the Netlify UI (Add new project → Import an existing project → GitHub) so every push to `main` redeploys, or run a one-off from a clone:
+
+```bash
+npx netlify-cli deploy --prod --dir .
+```
+
+GitHub Pages also works if you prefer it — Settings → Pages → deploy from branch → root. The relative paths in `manifest.webmanifest` and the `sw.js` registration are deliberately relative so the app runs correctly from a subpath like `/ledger-credit-tracker/`.
 
 ## 2. Install it on your phone
 
@@ -29,6 +35,8 @@ Once installed it launches fullscreen with no browser chrome and works with no c
 ## 3. Turn on cross-device sync
 
 Without this the app is device-local: your phone and laptop keep separate check-offs. Sync needs a backend, and Supabase's free tier is plenty.
+
+A Supabase project named `ledger-credit-tracker` is already provisioned with the table below applied, so you can skip to step 3 and paste its URL and anon key into Settings. The steps are kept here for rebuilding from scratch.
 
 1. Create a project at supabase.com.
 2. In the SQL editor, run:
