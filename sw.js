@@ -1,5 +1,5 @@
 /* Ledger service worker — app shell cache, network-first for Supabase */
-const CACHE = 'ledger-v1.0.1';
+const CACHE = 'ledger-v1.0.2';
 const SHELL = [
   './', './index.html', './styles.css', './app.js',
   './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'

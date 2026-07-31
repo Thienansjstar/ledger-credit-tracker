@@ -58,15 +58,16 @@ node -e "$(sed -n '/PERIOD MATH/,/STATE + SYNC/p' app.js)" 2>/dev/null || echo "
 
 Optional. Supabase REST via `fetch` — no SDK. Table:
 
-```sql
-create table ledger (
-  id text primary key,
-  data jsonb not null default '{}'::jsonb,
-  updated_at timestamptz not null default now()
-);
-alter table ledger enable row level security;
-create policy "sync code access" on ledger for all to anon using (true) with check (true);
+The client never talks to the table. `anon` has no privileges on `ledger`; it can only execute two `security definer` functions, both of which take the sync code as an argument:
+
 ```
+POST /rest/v1/rpc/ledger_pull   {"code": "<uuid>"}                  -> jsonb | null
+POST /rest/v1/rpc/ledger_push   {"code": "<uuid>", "payload": {…}}  -> void
+```
+
+Both reject a code shorter than 20 characters. This is why the code must come from a CSPRNG — `Math.random()` is not acceptable here, because the code *is* the credential. See `#genRoom` in `app.js`.
+
+**Do not "simplify" this back to `from('ledger').select()` with a permissive policy.** A `using(true)` policy makes the anon key sufficient on its own and reduces the sync code to a client-side row selector, which is not a security boundary — the anon key is designed to ship in client code.
 
 Claims merge per-key by timestamp (`mergeClaims`), so two devices editing different credits both survive. Unchecking writes `{p:null, t:now}` rather than deleting — a tombstone, so an un-check propagates instead of being overwritten by a stale check.
 

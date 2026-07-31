@@ -50,9 +50,31 @@ create table ledger (
 
 alter table ledger enable row level security;
 
-create policy "sync code access" on ledger
-  for all to anon
-  using (true) with check (true);
+-- anon never touches the table. The only way in is these two functions,
+-- and both demand the sync code as an argument.
+revoke all on ledger from anon, authenticated;
+
+create function ledger_pull(code text) returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare result jsonb;
+begin
+  if code is null or length(code) < 20 then raise exception 'sync code too short'; end if;
+  select l.data into result from public.ledger l where l.id = code;
+  return result;
+end; $$;
+
+create function ledger_push(code text, payload jsonb) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  if code is null or length(code) < 20 then raise exception 'sync code too short'; end if;
+  insert into public.ledger (id, data, updated_at) values (code, payload, now())
+  on conflict (id) do update set data = excluded.data, updated_at = now();
+end; $$;
+
+-- Supabase's default privileges hand EXECUTE to authenticated as well; this
+-- app has no sign-in, so take it back.
+revoke all on function ledger_pull(text), ledger_push(text, jsonb) from public, authenticated;
+grant execute on function ledger_pull(text), ledger_push(text, jsonb) to anon;
 ```
 
 3. In the app: Settings → Sync, paste your **Project URL** and **anon public key** (Supabase → Project Settings → API), tap **Generate code**, then **Save & sync**.
@@ -60,9 +82,13 @@ create policy "sync code access" on ledger
 
 ### About that security model
 
-The `anon` policy above lets anyone with your Supabase URL, anon key, *and* sync code read that row. The sync code is a random UUID, so it is effectively unguessable — but it is a shared secret, not real authentication.
+The sync code is the credential, and the database is what enforces it. `anon` has no privileges on the `ledger` table at all — it can only call `ledger_pull` and `ledger_push`, both of which take the code as an argument and touch exactly the one row it names. So the anon key on its own reaches nothing: it cannot list the table, and it cannot read a row whose code it does not already have. The code is a `crypto.randomUUID()` value, generated client-side and never sent anywhere but these two calls.
 
-That tradeoff is fine here because of what the app stores: a set of credit IDs and the period in which you checked them off. No card numbers, no balances, no name, no anything tied to your identity. If you would rather have real auth, swap the policy for `auth.uid()` matching and add Supabase magic-link sign-in.
+This matters because the anon key is not really a secret — it is designed to ship in client code, and anyone you share a sync code with also holds the key. Making the code the boundary is what keeps that from mattering.
+
+It is still a shared secret rather than per-user authentication: anyone you give a code to has full access to that row, and there is no way to revoke one device without rotating the code everywhere. That is an acceptable ceiling for what gets stored — a set of credit IDs, the period each was checked off in, and your card anniversary dates. No card numbers, no balances, no name. If you want real per-user auth, add Supabase magic-link sign-in and swap the functions for policies keyed on `auth.uid()`.
+
+Credentials never live in this repo. They are entered in Settings and kept in `localStorage` on each device.
 
 ## Keeping it current
 

@@ -5,7 +5,7 @@
 (() => {
 'use strict';
 
-const APP_VER = 'v1.0.1';
+const APP_VER = 'v1.0.2';
 
 /* ============================ CARD DATA ============================ */
 
@@ -187,15 +187,24 @@ function mergeClaims(a={}, b={}){
   return out;
 }
 
+/* Sync goes through two security-definer RPCs rather than the table, so the
+   sync code is the thing the database actually checks. The anon key alone
+   reaches nothing — it cannot read the table, and it cannot read a row whose
+   code it does not already have. */
+const rpc = (fn, body) => fetch(`${cfg.url.replace(/\/$/,'')}/rest/v1/rpc/${fn}`, {
+  method:'POST',
+  headers:{ apikey:cfg.key, Authorization:`Bearer ${cfg.key}`, 'Content-Type':'application/json' },
+  body: JSON.stringify(body)
+});
+
 async function pull(){
   if (!syncOn()) return;
-  const u = `${cfg.url.replace(/\/$/,'')}/rest/v1/ledger?id=eq.${encodeURIComponent(cfg.room)}&select=data`;
-  const r = await fetch(u, { headers:{ apikey:cfg.key, Authorization:`Bearer ${cfg.key}` }});
+  const r = await rpc('ledger_pull', { code: cfg.room });
   if (!r.ok) throw new Error('pull '+r.status);
-  const rows = await r.json();
-  if (rows[0]?.data) {
-    state.claims = mergeClaims(state.claims, rows[0].data.claims||{});
-    if (rows[0].data.anniv) state.anniv = {...state.anniv, ...rows[0].data.anniv};
+  const data = await r.json();   // null until this code has been pushed once
+  if (data) {
+    state.claims = mergeClaims(state.claims, data.claims||{});
+    if (data.anniv) state.anniv = {...state.anniv, ...data.anniv};
     saveLocal();
   }
 }
@@ -206,13 +215,7 @@ function pushSoon(){
   clearTimeout(pushT);
   pushT = setTimeout(async () => {
     try {
-      const u = `${cfg.url.replace(/\/$/,'')}/rest/v1/ledger?on_conflict=id`;
-      const r = await fetch(u, {
-        method:'POST',
-        headers:{ apikey:cfg.key, Authorization:`Bearer ${cfg.key}`,
-                  'Content-Type':'application/json', Prefer:'resolution=merge-duplicates' },
-        body: JSON.stringify([{ id:cfg.room, data:state, updated_at:new Date().toISOString() }])
-      });
+      const r = await rpc('ledger_push', { code: cfg.room, payload: state });
       if (!r.ok) throw new Error('push '+r.status);
       setDot('on','Synced '+new Date().toLocaleTimeString());
     } catch(e){ setDot('err','Could not reach Supabase — changes are saved on this device'); }
@@ -344,8 +347,19 @@ function renderAnniv(){
 function wireSettings(){
   $('#sbUrl').value = cfg.url; $('#sbKey').value = cfg.key; $('#sbRoom').value = cfg.room;
 
+  /* The sync code is the credential the database checks, so it has to come
+     from a CSPRNG — never Math.random(). randomUUID needs a secure context;
+     getRandomValues is the wider fallback and still cryptographic. */
   $('#genRoom').addEventListener('click', () => {
-    $('#sbRoom').value = (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)+Math.random().toString(36).slice(2));
+    let code;
+    if (crypto.randomUUID) {
+      code = crypto.randomUUID();
+    } else {
+      const b = new Uint8Array(16);
+      crypto.getRandomValues(b);
+      code = [...b].map(x => x.toString(16).padStart(2,'0')).join('');
+    }
+    $('#sbRoom').value = code;
   });
 
   $('#saveSync').addEventListener('click', async () => {
