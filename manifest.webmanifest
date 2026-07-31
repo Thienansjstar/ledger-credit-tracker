@@ -1,4 +1,5 @@
 {
+  "id": "./",
   "name": "Ledger — credit tracker",
   "short_name": "Ledger",
   "description": "Track use-it-or-lose-it credit card credits before their windows close.",

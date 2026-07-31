@@ -1,0 +1,40 @@
+# Static site — no build step. Publish the repo root as-is.
+[build]
+  publish = "."
+  command = ""
+
+# Nothing here is content-hashed, and the service worker is what decides
+# when a new version lands. So every shell file must revalidate on request;
+# otherwise the CDN keeps handing out a stale sw.js and the CACHE bump in
+# sw.js never reaches installed devices.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/app.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/styles.css"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json"
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Icons are versioned by filename and effectively never change.
+[[headers]]
+  for = "/icons/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
