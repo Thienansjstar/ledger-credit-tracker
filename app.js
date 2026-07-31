@@ -5,7 +5,7 @@
 (() => {
 'use strict';
 
-const APP_VER = 'v1.1.0';
+const APP_VER = 'v1.1.1';
 
 /* ============================ CARD DATA ============================ */
 
@@ -64,13 +64,13 @@ const CARDS = [
       {t:'c1flight', r:'5X',  c:'Flights · C1 Travel',        n:5},
       {t:'other',    r:'2X',  c:'Everything else',            n:2}
     ],
-    perks:['Unlimited Priority Pass','Capital One Lounges','Hertz President\u2019s Circle',
+    perks:['Priority Pass \u00b7 guests $35','Capital One Lounges \u00b7 guests $45','Hertz President\u2019s Circle',
            'Cell phone protection','No foreign transaction fee'],
     credits:[
       {id:'vx-travel', label:'Travel credit',      sub:'Capital One Travel only', cadence:'anniversary', anniv:'vx', value:300},
       {id:'vx-miles',  label:'Anniversary miles',  sub:'Posts automatically',     cadence:'anniversary', anniv:'vx', points:10000},
       {id:'vx-global', label:'Global Entry / TSA PreCheck', sub:'Application fee \u00b7 one per 4 years', cadence:'multiyear', years:4, value:120},
-      {id:'vx-pp',     label:'Enroll Priority Pass',   sub:'Unlimited visits, guests included', cadence:'once'},
+      {id:'vx-pp',     label:'Enroll Priority Pass',   sub:'Unlimited visits for you · guests $35', cadence:'once'},
       {id:'vx-hertz',  label:'Register Hertz status',  sub:'President\u2019s Circle via Capital One', cadence:'once'},
       {id:'vx-phone',  label:'Pay phone bill on this card', sub:'Required for cell phone protection', cadence:'once'}
     ]
@@ -88,7 +88,7 @@ const CARDS = [
       {t:'streaming', r:'3X', c:'Streaming',           n:3},
       {t:'other',     r:'1X', c:'Everything else',     n:1}
     ],
-    perks:['DashPass','Free Apple TV year','10% anniversary points bonus'],
+    perks:['DashPass','Free Apple TV year','Primary rental car cover'],
     credits:[
       {id:'csp-hotel', label:'Chase Travel hotel credit', sub:'Booked via Chase Travel', cadence:'anniversary', anniv:'csp', value:100},
       {id:'csp-dd',    label:'DoorDash non-restaurant',   sub:'Groceries or retail',     cadence:'monthly',     value:10},
@@ -148,37 +148,40 @@ const PERKS = [
             'Late checkout on request',
             'A points bonus on qualifying stays',
             'Guaranteed room availability when you book far enough ahead'],
-      how:'Register through Chase, then put the matching IHG number on every booking — status does nothing if the stay is not attached to it.' },
+      how:'Register through Chase, then put the matching IHG number on every booking — status does nothing if the stay is not attached to it.',
+      watch:'Granted through 31 December 2027. It is not open-ended, so do not plan status runs around it lasting forever.' },
 
     { name:'Priority Pass Select', kind:'Airport lounges',
-      what:'Membership in the large independent lounge network.',
+      what:'Membership in the large independent lounge network — 1,300+ lounges.',
       gets:['Lounge access on days you are flying',
-            'Guests under whatever the current guest policy allows',
+            'Up to two guests free, roughly $27 each beyond that',
             'Independent of which airline you fly'],
       how:'Enrol once through Chase. The membership does not exist until you activate it, so do it before a trip, not at the gate.',
       watch:'Chase has trimmed the non-lounge parts of Priority Pass over the years. Assume restaurant and spa credits are gone unless you confirm otherwise.' },
 
     { name:'Sapphire Lounge by The Club', kind:'Airport lounges',
       what:'Chase’s own lounges, a step above the contract ones.',
-      gets:['Entry for you plus two guests', 'Generally better food and less crowding'] },
+      gets:['Entry for you plus two guests', 'Generally better food and less crowding'],
+      watch:'From 15 August 2026 these lounges leave Priority Pass and LoungeKey. Your access comes from the Reserve itself so you keep it — but a Priority Pass card from any other issuer will stop working here.' },
 
     { name:'Apple TV+ and Apple Music', kind:'Subscriptions',
-      what:'Both services complimentary while you hold the card.',
+      what:'Both services complimentary for at least a year — around $288 a year of value.',
       gets:['Roughly the price of two standalone subscriptions, every month'],
-      how:'Activate in the Chase app. It never starts on its own.' },
+      how:'Activate in the Chase app. It never starts on its own.',
+      watch:'Must be activated by 22 June 2027. Miss that and the benefit is simply forfeited, which is why it sits in Credits as a checkable item.' },
 
     { name:'Travel and purchase protection', kind:'Insurance',
       what:'The reason to put a trip on this card rather than anything else in your wallet.',
       gets:['Trip cancellation and interruption cover',
             'Trip delay reimbursement',
-            'Primary collision damage waiver on rental cars',
+            'Primary rental car cover up to $75,000, exotics not excluded',
             'Baggage delay and lost luggage cover'],
-      watch:'Primary rental cover only applies if you decline the rental company’s own waiver and pay with this card. Taking their insurance forfeits it.' }
+      watch:'Primary rental cover only applies if you decline the rental company’s own waiver and pay with this card. Taking their insurance forfeits it. Rentals up to 31 consecutive days.' }
   ]},
 
   { card:'vx', items:[
     { name:'Hertz President’s Circle', kind:'Car rental status',
-      what:'Hertz’s top published tier, granted outright rather than earned.',
+      what:'Hertz’s top published tier, granted outright rather than earned. Capital One removed the end date, so this one is not on a countdown.',
       gets:['Guaranteed upgrade, usually two car classes',
             'Pick any car from the President’s Circle aisle',
             'Skip the counter and go straight to the car',
@@ -186,11 +189,16 @@ const PERKS = [
       how:'Enrol through Capital One, then book with that Hertz Gold Plus Rewards number.' },
 
     { name:'Priority Pass', kind:'Airport lounges',
-      what:'Capital One’s version is more generous than most cards’.',
-      gets:['Unlimited visits', 'Guests included rather than charged at the door'] },
+      what:'Unlimited visits for you. Guests are no longer free.',
+      gets:['Unlimited complimentary visits for the primary cardholder',
+            'Guests $35 each, every visit'],
+      watch:'Guests stopped being complimentary on 1 February 2026. The $75k spend threshold does not help here — it only covers Capital One Lounges and Landings, never Priority Pass.' },
 
-    { name:'Capital One Lounges', kind:'Airport lounges',
-      gets:['Entry for you plus two guests', 'Further guests charged at entry'] },
+    { name:'Capital One Lounges and Landings', kind:'Airport lounges',
+      what:'Capital One’s own lounges. You still get in free; bringing anyone costs.',
+      gets:['Unlimited complimentary entry for the primary cardholder',
+            'Guests $45 per adult, $25 for 17 and under, free under 2'],
+      watch:'Spending $75,000 on the card in a calendar year restores 2 complimentary guests at Lounges and 1 at Landings, for that year and the next. Authorized users lost free access entirely on 1 February 2026 — each now costs $125 a year.' },
 
     { name:'Cell phone protection', kind:'Insurance',
       what:'Covers the phones on your bill against damage and theft.',
@@ -202,9 +210,9 @@ const PERKS = [
   ]},
 
   { card:'csp', items:[
-    { name:'10% anniversary points bonus', kind:'Points',
-      what:'Each account anniversary Chase adds points based on the prior year’s spend.',
-      gets:['10% of what you put through the card, back as points'] },
+    { name:'10% anniversary points bonus', kind:'Watch out',
+      what:'This is being retired, not something to count on.',
+      watch:'Discontinued for anyone who applied on or after 15 June 2026. If you applied before that, you keep earning it only on purchases through 1 October 2026, then it stops. Do not factor it into whether the $95 fee is worth paying next year.' },
 
     { name:'DashPass', kind:'Delivery',
       gets:['No delivery fee on qualifying DoorDash orders', 'Lower service fees'],
@@ -216,8 +224,9 @@ const PERKS = [
 
     { name:'Travel and purchase protection', kind:'Insurance',
       gets:['Trip cancellation and interruption cover',
-            'Primary collision damage waiver on rental cars',
-            'Baggage delay cover'] }
+            'Primary rental car cover up to $60,000',
+            'Baggage delay cover'],
+      watch:'As on the Reserve, primary rental cover requires declining the rental company’s waiver.' }
   ]},
 
   { card:'cfu', items:[
