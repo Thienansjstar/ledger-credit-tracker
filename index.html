@@ -52,6 +52,14 @@
     <div id="cardList"></div>
   </section>
 
+  <!-- ============ PERKS ============ -->
+  <section class="pane" id="pane-perks">
+    <h2 class="pane-h">Perks</h2>
+    <p class="pane-sub">What each card gets you beyond the dollar credits.</p>
+    <div id="perkList"></div>
+    <p class="foot">Benefit terms move. Confirm anything you are about to rely on with the issuer before you book.</p>
+  </section>
+
   <!-- ============ ADVISOR ============ -->
   <section class="pane" id="pane-advisor">
     <h2 class="pane-h">Which card?</h2>
@@ -86,6 +94,15 @@
     </div>
 
     <div class="block">
+      <h3 class="block-h">Reminders</h3>
+      <p class="block-p">Download a calendar file and import it once. Your phone handles the reminders from then on — no notification permissions, and it keeps working even if you delete this app.</p>
+      <div class="btnrow">
+        <button class="solid" id="icsBtn">Download calendar</button>
+      </div>
+      <p class="note">Five recurring entries, one per credit cycle, each alerting at 9am with the credits at stake. Anniversary reminders use the dates set above, so set those first. Re-download if your anniversary dates change.</p>
+    </div>
+
+    <div class="block">
       <h3 class="block-h">Data</h3>
       <div class="btnrow">
         <button class="ghost" id="exportBtn">Export</button>
@@ -104,6 +121,8 @@
     <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg><span>Credits</span></button>
   <button class="tab" data-pane="cards" role="tab" aria-selected="false">
     <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2.5"/><path d="M2 10h20"/></svg><span>Cards</span></button>
+  <button class="tab" data-pane="perks" role="tab" aria-selected="false">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="5.2"/><path d="M8.4 13.2 7 21.5l5-2.6 5 2.6-1.4-8.3"/></svg><span>Perks</span></button>
   <button class="tab" data-pane="advisor" role="tab" aria-selected="false">
     <svg viewBox="0 0 24 24"><path d="M12 3v18M5 10l7-7 7 7"/></svg><span>Which?</span></button>
   <button class="tab" data-pane="settings" role="tab" aria-selected="false">

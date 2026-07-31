@@ -12,6 +12,19 @@ Installable PWA for tracking use-it-or-lose-it credit card credits. Vanilla JS, 
 | `sw.js` | Service worker, offline shell cache |
 | `manifest.webmanifest` | Install metadata |
 | `icons/` | 192, 512, maskable 512 |
+| `netlify.toml` | publish dir + cache headers |
+
+## Panes
+
+Five tabs: Credits, Cards, Perks, Which?, Settings. `PERKS` in `app.js` holds the non-dollar benefits — status tiers, lounges, insurance — as `{name, kind, what, gets[], how, watch}`. `how` exists because several benefits are dormant until activated, and `watch` is the fine print that decides whether a benefit is real (primary rental cover needs you to decline the counter waiver; Discover is barely accepted abroad). Set `kind:'Watch out'` to render the tag in red.
+
+Anything in `PERKS` with a `how` should usually also exist as a `cadence:'once'` credit, so it is checkable rather than merely readable.
+
+## Reminders
+
+Settings → Reminders exports an `.ics`. Deliberately **not** web push: push needs a server awake at the right moment, and on the free Supabase tier the project pauses after ~7 days idle while iOS silently drops push subscriptions when the home-screen icon goes away. Both fail without telling you, which is the worst property for a use-it-or-lose-it tracker. A calendar file hands scheduling to the phone and keeps working regardless.
+
+One `VEVENT` per cadence, not per credit, so the calendar stays readable. `fold()` wraps at 75 **octets** per RFC 5545 — count bytes, not JS string length, or the em dashes in the summaries push lines over.
 
 ## Gotcha that will bite you
 
@@ -33,9 +46,17 @@ Everything lives in the `CARDS` array at the top of `app.js`.
 ```
 
 Credit fields:
-- `cadence` — `monthly` | `quarterly` | `half` | `annual` | `anniversary`
-- `value` (dollars) or `points` — drives the unclaimed total
+- `cadence` — `monthly` | `quarterly` | `half` | `annual` | `anniversary` | `multiyear` | `once`
+- `value` (dollars) or `points` — drives the unclaimed total; omit both for `once` items so they do not inflate it
 - `anniv` — only for `cadence:'anniversary'`; points at a card id whose date is set in Settings
+- `years` — only for `cadence:'multiyear'`; defaults to 4
+
+The two cadences that are not calendar windows:
+
+- **`multiyear`** (Global Entry) — the clock starts when you *use* it, not on any date, so the window comes from the claim timestamp via `multiState()` rather than from `windowFor()`. An unused one has no deadline; it is just available. This is why `isClaimed` special-cases it.
+- **`once`** (Apple TV+, DashPass, Priority Pass enrolment) — benefits that are dormant until switched on. `windowFor` returns null, so `pKey` yields `'once'` and the check-off never expires. Neither cadence shows a depletion meter, because neither is depleting.
+
+If you add a credit whose label already exists on another card, `DUPE_LABELS` picks it up automatically and stamps the card name on those rows — three identical "Global Entry" rows were unusable without it.
 
 Advisor verdicts are hand-written in `VERDICT`, keyed by category tag. They exist because raw multiplier comparison misleads — e.g. Venture X's 10X only applies inside Capital One Travel. If you add a category, add a verdict or it falls back to naive rank comparison.
 

@@ -5,7 +5,7 @@
 (() => {
 'use strict';
 
-const APP_VER = 'v1.0.2';
+const APP_VER = 'v1.1.0';
 
 /* ============================ CARD DATA ============================ */
 
@@ -37,8 +37,12 @@ const CARDS = [
       {t:'other',    r:'1X', c:'Everything else',         n:1}
     ],
     perks:['Priority Pass Select','Sapphire Lounges + 2 guests','IHG One Platinum',
-           'Apple TV+ & Music','$120 Global Entry / 4 yrs'],
+           'Apple TV+ & Music','Trip & rental car cover'],
     credits:[
+      {id:'csr-global',  label:'Global Entry / TSA PreCheck', sub:'Application fee · one per 4 years', cadence:'multiyear', years:4, value:120},
+      {id:'csr-apple',   label:'Apple TV+ & Apple Music',  sub:'Activate in the Chase app',        cadence:'once'},
+      {id:'csr-pp',      label:'Enroll Priority Pass',     sub:'Membership must be activated',     cadence:'once'},
+      {id:'csr-ihg',     label:'Register IHG Platinum',    sub:'Link it to your IHG account',      cadence:'once'},
       {id:'csr-travel',  label:'Travel credit',        sub:'Any travel merchant · automatic', cadence:'anniversary', anniv:'csr', value:300},
       {id:'csr-edit1',   label:'The Edit hotel — 1st', sub:'Prepaid 2+ nights via Chase Travel', cadence:'annual', value:250},
       {id:'csr-edit2',   label:'The Edit hotel — 2nd', sub:'Second qualifying stay',          cadence:'annual', value:250},
@@ -61,10 +65,14 @@ const CARDS = [
       {t:'other',    r:'2X',  c:'Everything else',            n:2}
     ],
     perks:['Unlimited Priority Pass','Capital One Lounges','Hertz President\u2019s Circle',
-           'Cell phone protection','$120 Global Entry / 4 yrs'],
+           'Cell phone protection','No foreign transaction fee'],
     credits:[
       {id:'vx-travel', label:'Travel credit',      sub:'Capital One Travel only', cadence:'anniversary', anniv:'vx', value:300},
-      {id:'vx-miles',  label:'Anniversary miles',  sub:'Posts automatically',     cadence:'anniversary', anniv:'vx', points:10000}
+      {id:'vx-miles',  label:'Anniversary miles',  sub:'Posts automatically',     cadence:'anniversary', anniv:'vx', points:10000},
+      {id:'vx-global', label:'Global Entry / TSA PreCheck', sub:'Application fee \u00b7 one per 4 years', cadence:'multiyear', years:4, value:120},
+      {id:'vx-pp',     label:'Enroll Priority Pass',   sub:'Unlimited visits, guests included', cadence:'once'},
+      {id:'vx-hertz',  label:'Register Hertz status',  sub:'President\u2019s Circle via Capital One', cadence:'once'},
+      {id:'vx-phone',  label:'Pay phone bill on this card', sub:'Required for cell phone protection', cadence:'once'}
     ]
   },
   {
@@ -80,10 +88,13 @@ const CARDS = [
       {t:'streaming', r:'3X', c:'Streaming',           n:3},
       {t:'other',     r:'1X', c:'Everything else',     n:1}
     ],
-    perks:['DashPass','$120 Global Entry / 4 yrs','Free Apple TV year'],
+    perks:['DashPass','Free Apple TV year','10% anniversary points bonus'],
     credits:[
       {id:'csp-hotel', label:'Chase Travel hotel credit', sub:'Booked via Chase Travel', cadence:'anniversary', anniv:'csp', value:100},
-      {id:'csp-dd',    label:'DoorDash non-restaurant',   sub:'Groceries or retail',     cadence:'monthly',     value:10}
+      {id:'csp-dd',    label:'DoorDash non-restaurant',   sub:'Groceries or retail',     cadence:'monthly',     value:10},
+      {id:'csp-global',label:'Global Entry / TSA PreCheck', sub:'Application fee · one per 4 years', cadence:'multiyear', years:4, value:120},
+      {id:'csp-apple', label:'Apple TV+ free year',      sub:'Activate before the offer lapses', cadence:'once'},
+      {id:'csp-dash',  label:'Activate DashPass',        sub:'Complimentary while you hold the card', cadence:'once'}
     ]
   },
   {
@@ -97,7 +108,8 @@ const CARDS = [
     ],
     perks:['DashPass 6 months','2% on Lyft','No annual fee'],
     credits:[
-      {id:'cfu-dd', label:'DoorDash non-restaurant', sub:'One order per quarter', cadence:'quarterly', value:10}
+      {id:'cfu-dd',   label:'DoorDash non-restaurant', sub:'One order per quarter', cadence:'quarterly', value:10},
+      {id:'cfu-dash', label:'Activate DashPass',       sub:'6 complimentary months', cadence:'once'}
     ]
   }
 ];
@@ -121,6 +133,111 @@ const VERDICT = {
   rideshare:['Sapphire Reserve','5X','Through Sept 2027, and the monthly Lyft credit stacks on top.'],
   other    :['Venture X','2X','Uncapped 2X beats Freedom Unlimited at 1.5% on anything without a bonus category.']
 };
+
+/* ============================ PERKS ============================
+   The things that are not dollar credits — status tiers, lounges, insurance.
+   `gets` is what the benefit actually does for you; `how` exists because
+   several of these are dormant until you go and switch them on; `watch` is
+   the fine print that decides whether the benefit is real in practice. */
+
+const PERKS = [
+  { card:'csr', items:[
+    { name:'IHG One Rewards Platinum Elite', kind:'Hotel status',
+      what:'Automatic elite status across IHG — Holiday Inn, Kimpton, InterContinental, Hotel Indigo, Six Senses.',
+      gets:['Room upgrades when one is free at check-in',
+            'Late checkout on request',
+            'A points bonus on qualifying stays',
+            'Guaranteed room availability when you book far enough ahead'],
+      how:'Register through Chase, then put the matching IHG number on every booking — status does nothing if the stay is not attached to it.' },
+
+    { name:'Priority Pass Select', kind:'Airport lounges',
+      what:'Membership in the large independent lounge network.',
+      gets:['Lounge access on days you are flying',
+            'Guests under whatever the current guest policy allows',
+            'Independent of which airline you fly'],
+      how:'Enrol once through Chase. The membership does not exist until you activate it, so do it before a trip, not at the gate.',
+      watch:'Chase has trimmed the non-lounge parts of Priority Pass over the years. Assume restaurant and spa credits are gone unless you confirm otherwise.' },
+
+    { name:'Sapphire Lounge by The Club', kind:'Airport lounges',
+      what:'Chase’s own lounges, a step above the contract ones.',
+      gets:['Entry for you plus two guests', 'Generally better food and less crowding'] },
+
+    { name:'Apple TV+ and Apple Music', kind:'Subscriptions',
+      what:'Both services complimentary while you hold the card.',
+      gets:['Roughly the price of two standalone subscriptions, every month'],
+      how:'Activate in the Chase app. It never starts on its own.' },
+
+    { name:'Travel and purchase protection', kind:'Insurance',
+      what:'The reason to put a trip on this card rather than anything else in your wallet.',
+      gets:['Trip cancellation and interruption cover',
+            'Trip delay reimbursement',
+            'Primary collision damage waiver on rental cars',
+            'Baggage delay and lost luggage cover'],
+      watch:'Primary rental cover only applies if you decline the rental company’s own waiver and pay with this card. Taking their insurance forfeits it.' }
+  ]},
+
+  { card:'vx', items:[
+    { name:'Hertz President’s Circle', kind:'Car rental status',
+      what:'Hertz’s top published tier, granted outright rather than earned.',
+      gets:['Guaranteed upgrade, usually two car classes',
+            'Pick any car from the President’s Circle aisle',
+            'Skip the counter and go straight to the car',
+            'Bonus points on rentals'],
+      how:'Enrol through Capital One, then book with that Hertz Gold Plus Rewards number.' },
+
+    { name:'Priority Pass', kind:'Airport lounges',
+      what:'Capital One’s version is more generous than most cards’.',
+      gets:['Unlimited visits', 'Guests included rather than charged at the door'] },
+
+    { name:'Capital One Lounges', kind:'Airport lounges',
+      gets:['Entry for you plus two guests', 'Further guests charged at entry'] },
+
+    { name:'Cell phone protection', kind:'Insurance',
+      what:'Covers the phones on your bill against damage and theft.',
+      gets:['Applies to every line on the bill', 'Per-claim limit, with a deductible', 'A small number of claims per year'],
+      how:'Only active if you actually pay the phone bill with this card. That payment is the entire trigger — no payment, no cover.' },
+
+    { name:'No foreign transaction fee', kind:'Everyday',
+      gets:['Nothing added on overseas spend, unlike the Freedom Unlimited'] }
+  ]},
+
+  { card:'csp', items:[
+    { name:'10% anniversary points bonus', kind:'Points',
+      what:'Each account anniversary Chase adds points based on the prior year’s spend.',
+      gets:['10% of what you put through the card, back as points'] },
+
+    { name:'DashPass', kind:'Delivery',
+      gets:['No delivery fee on qualifying DoorDash orders', 'Lower service fees'],
+      how:'Activate through Chase.' },
+
+    { name:'Apple TV+', kind:'Subscriptions',
+      gets:['A complimentary year'],
+      how:'Activate before the offer window closes — it does not wait for you.' },
+
+    { name:'Travel and purchase protection', kind:'Insurance',
+      gets:['Trip cancellation and interruption cover',
+            'Primary collision damage waiver on rental cars',
+            'Baggage delay cover'] }
+  ]},
+
+  { card:'cfu', items:[
+    { name:'DashPass', kind:'Delivery', gets:['Six complimentary months'], how:'Activate through Chase.' },
+    { name:'Purchase protection and extended warranty', kind:'Insurance',
+      gets:['New purchases covered against damage or theft for a window after buying',
+            'Manufacturer warranties extended'] },
+    { name:'Foreign transaction fee', kind:'Watch out',
+      watch:'This card does charge one. Use the Reserve, Preferred or Venture X abroad — the 1.5% here is wiped out and then some.' }
+  ]},
+
+  { card:'disc', items:[
+    { name:'No annual fee, no foreign transaction fee', kind:'Everyday',
+      gets:['Nothing to justify each year', 'No surcharge on overseas spend'] },
+    { name:'Acceptance abroad', kind:'Watch out',
+      watch:'Discover is thin outside the US. Carry a Visa or Mastercard as your primary when travelling and treat this as a backup.' },
+    { name:'Quarterly activation', kind:'Watch out',
+      watch:'The 5% is capped per quarter and pays nothing at all unless you activate. That is why it sits in the Credits tab as a checkable item.' }
+  ]}
+];
 
 /* ============================ PERIOD MATH ============================ */
 
@@ -147,6 +264,19 @@ function windowFor(cr, anniv){
     }
     default: return null;
   }
+}
+
+/* `multiyear` credits (Global Entry) do not sit in a calendar window — the
+   clock starts when you use one. So the window is derived from the claim
+   timestamp rather than from today's date, and an unused one has no
+   deadline at all: it is simply available. `once` items never expire. */
+const YEAR = 365.25 * DAY;
+
+function multiState(cr){
+  const c = state.claims[cr.id];
+  if (!c || !c.p) return { used:false, until:null };
+  const until = c.t + (cr.years || 4) * YEAR;
+  return until > Date.now() ? { used:true, until } : { used:false, until:null };
 }
 
 const pKey     = (cr,a) => { const w = windowFor(cr,a); return w ? cr.cadence+':'+w.start.toISOString().slice(0,10) : 'once'; };
@@ -225,7 +355,19 @@ function pushSoon(){
 /* ============================ RENDER ============================ */
 
 const $ = s => document.querySelector(s);
-const isClaimed = cr => state.claims[cr.id]?.p === pKey(cr, state.anniv);
+const isClaimed = cr => cr.cadence === 'multiyear'
+  ? multiState(cr).used
+  : state.claims[cr.id]?.p === pKey(cr, state.anniv);
+
+const fmtMonth = ts => { const d = new Date(ts); return MONTHS[d.getMonth()]+' '+d.getFullYear(); };
+
+/* Several credits share a label across cards — three Global Entry rows, two
+   DashPass, two Travel credit. Identical rows are unusable, so name the card
+   on exactly those and leave the unambiguous ones clean. */
+const DUPE_LABELS = new Set(
+  Object.entries(CREDITS.reduce((m,c) => (m[c.label] = (m[c.label]||0)+1, m), {}))
+    .filter(([,n]) => n > 1).map(([label]) => label)
+);
 const CHK = '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>';
 
 function creditRow(cr){
@@ -236,19 +378,35 @@ function creditRow(cr){
   const val = cr.value != null ? '$'+cr.value : cr.points ? (cr.points/1000)+'k pts' : '';
   const left = dl === null ? '' : dl === 0 ? 'ends today' : dl === 1 ? '1 day left' : dl+' days left';
 
+  /* Only window-bound credits get a depletion meter. A one-time setup has
+     nothing to deplete, and an unused Global Entry credit is not running
+     out — it is just sitting there. Showing a bar for either would imply a
+     deadline that does not exist. */
+  let meter;
+  if (cr.cadence === 'once') {
+    meter = `<span class="meter flat"><span class="meter-t">${claimed ? 'set up' : 'one-time setup'}</span></span>`;
+  } else if (cr.cadence === 'multiyear') {
+    const m = multiState(cr);
+    meter = `<span class="meter flat"><span class="meter-t">${m.used ? 'next available '+fmtMonth(m.until) : 'available now'}</span></span>`;
+  } else {
+    meter = `<span class="meter${warn?' warn':''}">
+       <span class="meter-track"><span class="meter-fill" style="width:${pct}%"></span></span>
+       <span class="meter-t">${left}</span>
+     </span>`;
+  }
+
   const b = document.createElement('button');
   b.className = 'row'; b.type = 'button';
   b.setAttribute('aria-pressed', claimed ? 'true' : 'false');
   b.innerHTML =
     `<span class="row-top">
        <span class="chk">${CHK}</span>
-       <span class="row-txt"><span class="row-lab">${cr.label}</span><span class="row-sub">${cr.sub}</span></span>
+       <span class="row-txt"><span class="row-lab">${cr.label}</span><span class="row-sub">${
+         DUPE_LABELS.has(cr.label) ? `<b class="row-card">${cr.card}</b> ${cr.sub}` : cr.sub
+       }</span></span>
        <span class="row-val">${val}</span>
      </span>
-     <span class="meter${warn?' warn':''}">
-       <span class="meter-track"><span class="meter-fill" style="width:${pct}%"></span></span>
-       <span class="meter-t">${left}</span>
-     </span>`;
+     ${meter}`;
   b.addEventListener('click', () => {
     state.claims[cr.id] = { p: claimed ? null : pKey(cr, state.anniv), t: Date.now() };
     saveLocal(); pushSoon(); render();
@@ -261,7 +419,9 @@ const GROUPS = [
   ['quarterly',  'Quarterly'],
   ['half',       'Half-year'],
   ['annual',     'Calendar year'],
-  ['anniversary','Anniversary year']
+  ['anniversary','Anniversary year'],
+  ['multiyear',  'Every 4 years'],
+  ['once',       'Set up once']
 ];
 
 function render(){
@@ -271,7 +431,7 @@ function render(){
     else if (cr.value != null) open += cr.value;
   }
   $('#statOpen').textContent = '$'+open.toLocaleString();
-  $('#statSub').textContent  = `${done} of ${CREDITS.length} claimed in their current window`;
+  $('#statSub').textContent  = `${done} of ${CREDITS.length} claimed or set up`;
 
   /* closing this week */
   const soon = CREDITS
@@ -316,6 +476,137 @@ function render(){
   }
 
   $('#foot').textContent = syncOn() ? 'Synced across your devices.' : 'Saved on this device only.';
+}
+
+function renderPerks(){
+  const wrap = $('#perkList'); wrap.innerHTML = '';
+  for (const grp of PERKS) {
+    const card = CARDS.find(c => c.id === grp.card);
+    const blk = document.createElement('div'); blk.className = 'perkcard';
+    blk.innerHTML =
+      `<div class="perkcard-h">
+         <span class="swatch" style="background:${card.face}"></span>
+         <span class="perkcard-nm">${card.name}</span>
+         <span class="perkcard-iss">${card.issuer}</span>
+       </div>` +
+      grp.items.map(it => `
+        <div class="perk">
+          <p class="perk-nm">${it.name}<span class="perk-kind${it.kind==='Watch out'?' warnkind':''}">${it.kind}</span></p>
+          ${it.what ? `<p class="perk-what">${it.what}</p>` : ''}
+          ${it.gets ? `<ul class="perk-gets">${it.gets.map(g=>`<li>${g}</li>`).join('')}</ul>` : ''}
+          ${it.how ? `<p class="perk-how"><b>Turn it on</b> ${it.how}</p>` : ''}
+          ${it.watch ? `<p class="perk-watch"><b>Watch out</b> ${it.watch}</p>` : ''}
+        </div>`).join('');
+    wrap.appendChild(blk);
+  }
+}
+
+/* ============================ CALENDAR EXPORT ============================
+   Reminders without a backend. Push would need a server awake at the right
+   moment; a calendar file hands the job to the phone's own scheduler, which
+   keeps working whether or not this app is installed or Supabase is awake.
+   One event per cadence rather than per credit, so the calendar stays
+   readable — 5 recurring entries instead of thirty. */
+
+const icsEsc = s => String(s).replace(/([\\;,])/g,'\\$1').replace(/\n/g,'\\n');
+const pad2   = n => String(n).padStart(2,'0');
+const ymd    = d => d.getFullYear()+pad2(d.getMonth()+1)+pad2(d.getDate());
+
+/* RFC 5545 caps a line at 75 *octets*, not characters, and continuation lines
+   begin with a space that counts toward the limit. The em dashes in these
+   summaries are three bytes each, so counting JS string length would let lines
+   run over. Split on code-point boundaries so multi-byte characters survive. */
+function fold(line){
+  const enc = new TextEncoder();
+  if (enc.encode(line).length <= 75) return line;
+  const out = [];
+  let cur = '', bytes = 0;
+  for (const ch of line) {
+    const b = enc.encode(ch).length;
+    if (bytes + b > 75) { out.push(cur); cur = ' ' + ch; bytes = 1 + b; }
+    else { cur += ch; bytes += b; }
+  }
+  out.push(cur);
+  return out.join('\r\n');
+}
+
+function vevent({uid, start, rrule, summary, desc, alarm}){
+  const end = new Date(start.getTime() + DAY);
+  return [
+    'BEGIN:VEVENT',
+    'UID:'+uid,
+    'DTSTAMP:'+new Date().toISOString().replace(/[-:]/g,'').slice(0,15)+'Z',
+    'DTSTART;VALUE=DATE:'+ymd(start),
+    'DTEND;VALUE=DATE:'+ymd(end),
+    'RRULE:'+rrule,
+    'SUMMARY:'+icsEsc(summary),
+    'DESCRIPTION:'+icsEsc(desc),
+    'BEGIN:VALARM','ACTION:DISPLAY','TRIGGER;RELATED=START:PT9H',
+    'DESCRIPTION:'+icsEsc(summary),'END:VALARM',
+    'END:VEVENT'
+  ].map(fold).join('\r\n');
+}
+
+function buildICS(){
+  const now = new Date(), y = now.getFullYear();
+  const list = cad => CREDITS.filter(c => c.cadence === cad);
+  const names = cad => list(cad).map(c => `${c.label} (${c.card}${c.value!=null?' — $'+c.value:''})`).join('\n');
+  const sum = cad => list(cad).reduce((t,c) => t + (c.value||0), 0);
+
+  const ev = [];
+
+  if (list('monthly').length)
+    ev.push(vevent({ uid:'ledger-monthly@ledger.app', start:new Date(y, now.getMonth(), 25),
+      rrule:'FREQ=MONTHLY;BYMONTHDAY=25',
+      summary:`Monthly card credits — $${sum('monthly')} closing`,
+      desc:'These reset on the 1st. Anything unused is gone.\n\n'+names('monthly') }));
+
+  if (list('quarterly').length)
+    ev.push(vevent({ uid:'ledger-quarterly@ledger.app', start:new Date(y, 2, 25),
+      rrule:'FREQ=YEARLY;BYMONTH=3,6,9,12;BYMONTHDAY=25',
+      summary:`Quarterly card credits — $${sum('quarterly')} closing`,
+      desc:'End of quarter approaching.\n\n'+names('quarterly') }));
+
+  if (list('half').length)
+    ev.push(vevent({ uid:'ledger-half@ledger.app', start:new Date(y, 5, 20),
+      rrule:'FREQ=YEARLY;BYMONTH=6,12;BYMONTHDAY=20',
+      summary:`Half-year card credits — $${sum('half')} closing`,
+      desc:'These reset on 1 January and 1 July.\n\n'+names('half') }));
+
+  if (list('annual').length)
+    ev.push(vevent({ uid:'ledger-annual@ledger.app', start:new Date(y, 11, 10),
+      rrule:'FREQ=YEARLY;BYMONTH=12;BYMONTHDAY=10',
+      summary:`Calendar-year credits — $${sum('annual')} closing`,
+      desc:'Three weeks until these reset on 1 January. Book now if you have not.\n\n'+names('annual') }));
+
+  /* Anniversary credits key off your account-open date, so each card gets its
+     own reminder two weeks ahead of its own reset. */
+  for (const key of ['csr','vx','csp']) {
+    const anCredits = CREDITS.filter(c => c.cadence === 'anniversary' && c.anniv === key);
+    if (!anCredits.length) continue;
+    const a = state.anniv[key] || DEFAULT_ANNIV[key];
+    const card = CARDS.find(c => c.id === key);
+    const warn = new Date(y, a.m-1, a.d);
+    warn.setTime(warn.getTime() - 14*DAY);
+    ev.push(vevent({ uid:`ledger-anniv-${key}@ledger.app`, start:warn,
+      rrule:`FREQ=YEARLY;BYMONTH=${warn.getMonth()+1};BYMONTHDAY=${warn.getDate()}`,
+      summary:`${card.name} anniversary credits close in 2 weeks`,
+      desc:`Your ${card.name} year resets on ${MONTHS[a.m-1]} ${a.d}.\n\n`+
+           anCredits.map(c=>`${c.label}${c.value!=null?' — $'+c.value:c.points?' — '+(c.points/1000)+'k pts':''}`).join('\n') }));
+  }
+
+  return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Ledger//Credit Tracker//EN',
+          'CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:Ledger — card credits',
+          ...ev, 'END:VCALENDAR'].join('\r\n');
+}
+
+function downloadICS(){
+  const blob = new Blob([buildICS()], { type:'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'ledger-credits.ics';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 /* ============================ SETTINGS UI ============================ */
@@ -392,6 +683,8 @@ function wireSettings(){
     saveLocal(); pushSoon(); render();
   });
 
+  $('#icsBtn').addEventListener('click', downloadICS);
+
   $('#swVer').textContent = APP_VER;
 }
 
@@ -444,7 +737,7 @@ function wireInstall(){
 /* ============================ BOOT ============================ */
 
 loadLocal();
-wireTabs(); wireAdvisor(); wireInstall(); wireSettings(); renderAnniv(); render();
+wireTabs(); wireAdvisor(); wireInstall(); wireSettings(); renderAnniv(); renderPerks(); render();
 
 if (syncOn()) { setDot('on'); pull().then(render).catch(() => setDot('err')); }
 else setDot('local');

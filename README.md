@@ -32,7 +32,15 @@ GitHub Pages also works if you prefer it — Settings → Pages → deploy from 
 
 Once installed it launches fullscreen with no browser chrome and works with no connection.
 
-## 3. Turn on cross-device sync
+## 3. Get reminded before a window closes
+
+Settings → Reminders → **Download calendar**, then open the file and import it. You get five recurring entries — one per credit cycle — each alerting at 9am with the credits and dollar amounts at stake, plus one per card timed two weeks before its anniversary resets.
+
+This is deliberately a calendar file rather than push notifications. Push needs a server awake at the right moment, and there are two ways that quietly fails: a free Supabase project pauses after about a week idle, and iOS drops push subscriptions when the home-screen icon goes away. Neither tells you it happened, which is exactly the wrong failure mode for a tracker whose whole job is not letting money expire. Your phone's calendar keeps working regardless.
+
+Set your anniversary dates before exporting, and re-download if you change them.
+
+## 4. Turn on cross-device sync
 
 Without this the app is device-local: your phone and laptop keep separate check-offs. Sync needs a backend, and Supabase's free tier is plenty.
 
@@ -96,8 +104,12 @@ Card terms move. Everything you would need to edit lives in the `CARDS` array at
 
 - `rates` — earn multipliers, `t` is the advisor category tag
 - `perks` — the short pills on the Cards tab
-- `credits` — each one needs `cadence` (`monthly`, `quarterly`, `half`, `annual`, `anniversary`) and either `value` (dollars) or `points`
+- `credits` — each one needs `cadence` (`monthly`, `quarterly`, `half`, `annual`, `anniversary`, `multiyear`, `once`) and either `value` (dollars) or `points`
 - anniversary credits also need `anniv` pointing at a card id, with the date set in Settings
+- `multiyear` is for Global Entry: the four-year clock starts when you use it, so it shows "available now" rather than a countdown
+- `once` is for benefits that are dormant until you switch them on — Apple TV+, DashPass, Priority Pass enrolment. Checkable, never expires, and carries no dollar value so it does not inflate the unclaimed total
+
+The longer-form benefits on the **Perks** tab — IHG and Hertz status, lounges, insurance, the things worth knowing before you book — live in `PERKS`, keyed by card.
 
 The advisor's written verdicts are in `VERDICT`, keyed by category tag.
 
