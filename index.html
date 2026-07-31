@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ledger — credit tracker</title>
+<meta name="description" content="Track use-it-or-lose-it credit card credits before their windows close.">
+<meta name="theme-color" content="#0B1210">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ledger">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Azeret+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-in">
+    <p class="brand">Ledger</p>
+    <button class="ghost" id="installBtn" hidden>Install</button>
+    <span class="syncdot" id="syncDot" title="Saved on this device">local</span>
+  </div>
+</header>
+
+<main>
+  <!-- ============ CREDITS ============ -->
+  <section class="pane is-active" id="pane-credits">
+    <div class="hero">
+      <p class="hero-lab">Unclaimed right now</p>
+      <p class="hero-num" id="statOpen">$0</p>
+      <p class="hero-sub" id="statSub">—</p>
+    </div>
+
+    <div class="alarmbox" id="alarmBox" hidden>
+      <p class="alarm-h">Closing this week</p>
+      <ul id="alarmList"></ul>
+    </div>
+
+    <div id="creditGroups"></div>
+
+    <p class="foot" id="foot"></p>
+  </section>
+
+  <!-- ============ CARDS ============ -->
+  <section class="pane" id="pane-cards">
+    <h2 class="pane-h">Cards</h2>
+    <div id="cardList"></div>
+  </section>
+
+  <!-- ============ ADVISOR ============ -->
+  <section class="pane" id="pane-advisor">
+    <h2 class="pane-h">Which card?</h2>
+    <p class="pane-sub">Tap what you're buying.</p>
+    <div class="cats" id="cats"></div>
+    <div class="verdict" id="verdict">
+      <p class="verdict-empty">Pick a category.</p>
+    </div>
+  </section>
+
+  <!-- ============ SETTINGS ============ -->
+  <section class="pane" id="pane-settings">
+    <h2 class="pane-h">Settings</h2>
+
+    <div class="block">
+      <h3 class="block-h">Anniversary dates</h3>
+      <p class="block-p">Anniversary credits reset on your account-open date, not January 1. Set them so countdowns are right.</p>
+      <div id="annivRows"></div>
+    </div>
+
+    <div class="block">
+      <h3 class="block-h">Sync across devices</h3>
+      <p class="block-p">Without this, check-offs live only on this device. Add a Supabase project and a sync code to share them across your phone and laptop.</p>
+      <label class="fld"><span>Supabase URL</span><input id="sbUrl" type="url" placeholder="https://xxxx.supabase.co" autocomplete="off" spellcheck="false"></label>
+      <label class="fld"><span>Anon key</span><input id="sbKey" type="password" placeholder="eyJhbGci…" autocomplete="off" spellcheck="false"></label>
+      <label class="fld"><span>Sync code</span><input id="sbRoom" type="text" placeholder="tap Generate" autocomplete="off" spellcheck="false"></label>
+      <div class="btnrow">
+        <button class="ghost" id="genRoom">Generate code</button>
+        <button class="solid" id="saveSync">Save &amp; sync</button>
+      </div>
+      <p class="note" id="syncNote">Use the same code on every device. Anyone with the code can read your check-offs, so keep it private — no card numbers are ever stored.</p>
+    </div>
+
+    <div class="block">
+      <h3 class="block-h">Data</h3>
+      <div class="btnrow">
+        <button class="ghost" id="exportBtn">Export</button>
+        <button class="ghost" id="importBtn">Import</button>
+        <button class="ghost danger" id="resetBtn">Clear check-offs</button>
+      </div>
+      <textarea id="ioBox" class="iobox" hidden spellcheck="false"></textarea>
+    </div>
+
+    <p class="ver">Card terms current as of 31 Jul 2026 · <span id="swVer"></span></p>
+  </section>
+</main>
+
+<nav class="tabs" role="tablist">
+  <button class="tab is-on" data-pane="credits" role="tab" aria-selected="true">
+    <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg><span>Credits</span></button>
+  <button class="tab" data-pane="cards" role="tab" aria-selected="false">
+    <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2.5"/><path d="M2 10h20"/></svg><span>Cards</span></button>
+  <button class="tab" data-pane="advisor" role="tab" aria-selected="false">
+    <svg viewBox="0 0 24 24"><path d="M12 3v18M5 10l7-7 7 7"/></svg><span>Which?</span></button>
+  <button class="tab" data-pane="settings" role="tab" aria-selected="false">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg><span>Settings</span></button>
+</nav>
+
+<script src="app.js"></script>
+</body>
+</html>

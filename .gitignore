@@ -1,0 +1,15 @@
+# secrets — sync credentials belong in the app's Settings pane, never in the repo
+.env
+.env.*
+*.key
+
+# os / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# tooling
+node_modules/
+.netlify/
+.cache/
