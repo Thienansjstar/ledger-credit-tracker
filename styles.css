@@ -174,6 +174,27 @@ button.solid{background:var(--brass);border:1px solid var(--brass);color:#160F00
 .tab span{font-family:var(--data);font-size:9px;letter-spacing:.08em;text-transform:uppercase}
 .tab.is-on{color:var(--brass)}
 
+/* ---------- daily digest ---------- */
+.digest{background:var(--slab);border:1px solid var(--edge);border-radius:14px;
+  margin:2px 0 20px;overflow:hidden}
+.digest-h{display:flex;align-items:center;gap:8px;padding:10px 14px;
+  background:var(--slab-2);border-bottom:1px solid var(--edge)}
+.digest-lab{font-family:var(--data);font-size:9px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--brass);flex:1}
+.digest-date{font-family:var(--data);font-size:9px;letter-spacing:.08em;color:var(--dim)}
+.digest-x{background:none;border:none;color:var(--dim);font-size:19px;line-height:1;
+  padding:0 2px;cursor:pointer}
+.digest ul{list-style:none;margin:0;padding:0}
+.digest li{border-top:1px solid var(--edge)}
+.digest li:first-child{border-top:none}
+.digest a{display:block;padding:11px 14px;text-decoration:none;color:inherit}
+.digest a:active{background:var(--slab-2)}
+.dg-title{display:block;font-size:13.5px;line-height:1.4;margin-bottom:5px}
+.dg-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.dg-tag{font-family:var(--data);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--brass);background:var(--brass-w);border-radius:20px;padding:2px 7px}
+.dg-src{font-family:var(--data);font-size:9px;color:var(--dim);letter-spacing:.05em}
+
 .row-card{font-family:var(--data);font-size:9.5px;letter-spacing:.06em;
   text-transform:uppercase;color:var(--brass);font-weight:500;margin-right:5px}
 
