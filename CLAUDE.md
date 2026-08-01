@@ -20,6 +20,27 @@ Five tabs: Credits, Cards, Perks, Which?, Settings. `PERKS` in `app.js` holds th
 
 Anything in `PERKS` with a `how` should usually also exist as a `cadence:'once'` credit, so it is checkable rather than merely readable.
 
+## Daily digest
+
+`scripts/build-digest.mjs` reads points-blog RSS feeds and writes `digest.json`; `.github/workflows/digest.yml` runs it daily and commits, and Netlify redeploys on that push. `loadDigest()` in `app.js` renders the strip. Free: Actions minutes are unlimited on public repos.
+
+**Headlines and links only.** Nothing in the digest may edit `CARDS` or `PERKS` — those carry a human verification date, and a feed scraper has no business overwriting them. If a story suggests terms actually changed, that is a human's job.
+
+Two things that are load-bearing and easy to undo by accident:
+
+- `if: github.event_name == 'schedule' || inputs.commit` on the commit step. A schedule event carries no inputs, so testing `inputs.commit` alone means the daily run never commits — green workflow, site never updates.
+- De-duplication runs *after* the date sort, and compares significant words rather than exact titles. The same story runs on several blogs under different headlines; the first live run spent two of three slots on one lounge story.
+
+Matchers cover benefit names, not just card names. "Chase Sapphire Lounges Cut Priority Pass Access" names no card in `CARDS` yet is the most relevant thing a Reserve holder could read that week.
+
+Test without hitting the network:
+
+```bash
+FEEDS_BASE=http://127.0.0.1:8877 node scripts/build-digest.mjs
+```
+
+**Known limit:** GitHub disables scheduled workflows after 60 days of repo inactivity, and the workflow's own bot commits do not reliably reset that timer. The strip shows the digest date, so a stalled feed looks stale rather than looking like no news.
+
 ## Reminders
 
 Settings → Reminders exports an `.ics`. Deliberately **not** web push: push needs a server awake at the right moment, and on the free Supabase tier the project pauses after ~7 days idle while iOS silently drops push subscriptions when the home-screen icon goes away. Both fail without telling you, which is the worst property for a use-it-or-lose-it tracker. A calendar file hands scheduling to the phone and keeps working regardless.

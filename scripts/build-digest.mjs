@@ -61,6 +61,29 @@ const strip = s => s
 
 const tag = (re, xml) => { const m = xml.match(re); return m ? strip(m[1]) : ''; };
 
+/* The same story runs on several blogs under different headlines, and exact
+   title matching does not catch it — the first live run spent two of three
+   slots on one lounge story. Compare the significant words instead. */
+const STOP = new Set(('the a an and or to of for in on at is are was be how what where when why '
+  + 'they you your it its with from by more now new get got can will has have this that').split(' '));
+
+const sig = t => new Set(t.toLowerCase()
+  .replace(/[^a-z0-9\s]/g, ' ')
+  .split(/\s+/)
+  .filter(w => w.length > 2 && !STOP.has(w)));
+
+function nearDuplicate(words, alreadyKept) {
+  for (const prev of alreadyKept) {
+    const shared = [...words].filter(w => prev.has(w)).length;
+    // Require real overlap as well as a high ratio, so two short headlines
+    // sharing a couple of words are not collapsed into one.
+    if (shared < 3) continue;
+    const union = new Set([...words, ...prev]).size;
+    if (union && shared / union >= 0.5) return true;
+  }
+  return false;
+}
+
 function parseFeed(xml) {
   const blocks = xml.match(/<(item|entry)\b[\s\S]*?<\/\1>/gi) || [];
   return blocks.map(b => {
@@ -78,7 +101,6 @@ function parseFeed(xml) {
 async function main() {
   const base = process.env.FEEDS_BASE;   // set only when testing against a mock
   const cutoff = Date.now() - MAX_AGE_DAYS * 86400000;
-  const seen = new Set();
   const kept = [];
 
   for (const [source, url] of FEEDS) {
@@ -105,10 +127,6 @@ async function main() {
       const tags = MATCHERS.filter(([re]) => re.test(it.title)).map(([, t]) => t);
       if (!tags.length) continue;
 
-      const key = it.title.toLowerCase();
-      if (seen.has(key)) continue;        // the same story runs on several blogs
-      seen.add(key);
-
       kept.push({
         title: it.title,
         link: it.link,
@@ -122,15 +140,31 @@ async function main() {
     console.log(`  ${source.padEnd(20)} ${String(items.length).padStart(3)} items, ${hits} matched`);
   }
 
+  /* Sort before de-duplicating, so when two blogs carry the same story the
+     copy that survives is the most recent one rather than whichever feed
+     happened to be listed first. */
   kept.sort((a, b) => b.ts - a.ts);
-  const items = kept.slice(0, MAX_ITEMS).map(({ ts, ...rest }) => rest);
+
+  const items = [];
+  const keptWords = [];
+  for (const it of kept) {
+    if (items.length >= MAX_ITEMS) break;
+    const words = sig(it.title);
+    if (nearDuplicate(words, keptWords)) {
+      console.log(`  (skipped near-duplicate) ${it.title}`);
+      continue;
+    }
+    keptWords.push(words);
+    const { ts, ...rest } = it;
+    items.push(rest);
+  }
 
   writeFileSync('digest.json', JSON.stringify({
     generated: new Date().toISOString(),
     items,
   }, null, 2) + '\n');
 
-  console.log(`\nWrote digest.json — ${items.length} item(s) from ${seen.size} match(es).`);
+  console.log(`\nWrote digest.json — ${items.length} item(s) from ${kept.length} match(es).`);
   for (const i of items) console.log(`  · [${i.tags.join(', ')}] ${i.title}  (${i.source})`);
 }
 

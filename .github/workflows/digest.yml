@@ -1,8 +1,12 @@
 name: Card news digest
 
-# No schedule yet — deliberately manual until the feed list is proven.
-# Run with commit=false to see what it finds without touching the repo.
 on:
+  # 14:00 UTC — morning in US Pacific. GitHub delays cron under load, so
+  # treat the time as approximate.
+  schedule:
+    - cron: '0 14 * * *'
+  # Manual runs default to NOT committing, so the feed can be inspected
+  # without touching the repo.
   workflow_dispatch:
     inputs:
       commit:
@@ -31,8 +35,11 @@ jobs:
       - name: Show digest.json
         run: cat digest.json
 
+      # A schedule event carries no inputs, so `inputs.commit` is empty there.
+      # Checking only that would mean the daily run never commits anything —
+      # the workflow would look healthy and the site would never update.
       - name: Commit if asked
-        if: ${{ inputs.commit }}
+        if: ${{ github.event_name == 'schedule' || inputs.commit }}
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
