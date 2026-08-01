@@ -65,12 +65,18 @@ const tag = (re, xml) => { const m = xml.match(re); return m ? strip(m[1]) : '';
    title matching does not catch it — the first live run spent two of three
    slots on one lounge story. Compare the significant words instead. */
 const STOP = new Set(('the a an and or to of for in on at is are was be how what where when why '
-  + 'they you your it its with from by more now new get got can will has have this that').split(' '));
+  + 'they you your it its with from by more now new get got can will has have this that '
+  + 'but does did doe not all any out its than then after before still just only into').split(' '));
+
+/* Crude singular form so "lounge" and "lounges" collide. Words ending in
+   "ss" are left alone — otherwise "pass" and "access" lose their meaning. */
+const stem = w => (w.endsWith('s') && !w.endsWith('ss')) ? w.slice(0, -1) : w;
 
 const sig = t => new Set(t.toLowerCase()
   .replace(/[^a-z0-9\s]/g, ' ')
   .split(/\s+/)
-  .filter(w => w.length > 2 && !STOP.has(w)));
+  .filter(w => w.length > 2 && !STOP.has(w))
+  .map(stem));
 
 /* Overlap coefficient — shared words over the *smaller* headline — rather
    than Jaccard over the union. Two write-ups of one story rarely share their
@@ -151,15 +157,31 @@ async function main() {
      happened to be listed first. */
   kept.sort((a, b) => b.ts - a.ts);
 
+  /* One item per topic. Word-overlap tuning turned into whack-a-mole — four
+     blogs covered the Sapphire Lounge story with four headlines, and each
+     threshold that caught three let the fourth through. The tag already says
+     what a story is about, so cap the strip at one item per primary tag and
+     the problem goes away structurally. Three slots are for three different
+     things; depth on one topic is what the link is for.
+     Word overlap stays as a backstop for same-story-different-tag. */
   const items = [];
   const keptWords = [];
+  const usedTopics = new Set();
   for (const it of kept) {
     if (items.length >= MAX_ITEMS) break;
+
+    const topic = it.tags[0] || '';
+    if (usedTopics.has(topic)) {
+      console.log(`  (skipped, already have a "${topic}" item) ${it.title}`);
+      continue;
+    }
     const words = sig(it.title);
     if (nearDuplicate(words, keptWords)) {
       console.log(`  (skipped near-duplicate) ${it.title}`);
       continue;
     }
+
+    usedTopics.add(topic);
     keptWords.push(words);
     const { ts, ...rest } = it;
     items.push(rest);
