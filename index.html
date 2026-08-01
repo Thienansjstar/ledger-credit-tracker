@@ -30,6 +30,15 @@
 <main>
   <!-- ============ CREDITS ============ -->
   <section class="pane is-active" id="pane-credits">
+    <div class="digest" id="digest" hidden>
+      <div class="digest-h">
+        <span class="digest-lab">Worth a look</span>
+        <span class="digest-date" id="digestDate"></span>
+        <button class="digest-x" id="digestX" aria-label="Dismiss for today">&times;</button>
+      </div>
+      <ul id="digestList"></ul>
+    </div>
+
     <div class="hero">
       <p class="hero-lab">Unclaimed right now</p>
       <p class="hero-num" id="statOpen">$0</p>

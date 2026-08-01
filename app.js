@@ -510,6 +510,50 @@ function renderPerks(){
   }
 }
 
+/* ============================ DAILY DIGEST ============================
+   digest.json is rebuilt by a scheduled GitHub Action and lands here through
+   the normal deploy. Headlines and links only — nothing in it is treated as
+   fact about a card, and nothing in it touches CARDS or PERKS. It is a
+   pointer to go and read, which is why every row is a link out.
+
+   Failure is deliberately quiet: no file, bad JSON, or offline just means no
+   strip. But when a digest does show, its date is on screen, so a feed that
+   silently stopped updating looks stale rather than looking like no news. */
+
+const DIGEST_SEEN = 'ledger.digest.seen';
+
+async function loadDigest(){
+  let d;
+  try {
+    const r = await fetch('digest.json', { cache:'no-cache' });
+    if (!r.ok) return;
+    d = await r.json();
+  } catch { return; }
+  if (!d || !Array.isArray(d.items) || !d.items.length) return;
+
+  const day = String(d.generated || '').slice(0,10);
+  if (localStorage.getItem(DIGEST_SEEN) === day) return;   // dismissed today
+
+  const esc = s => String(s).replace(/[&<>"]/g, c =>
+    ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+
+  $('#digestDate').textContent = day;
+  $('#digestList').innerHTML = d.items.map(i => `
+    <li>
+      <a href="${esc(i.link)}" target="_blank" rel="noopener noreferrer">
+        <span class="dg-title">${esc(i.title)}</span>
+        <span class="dg-meta">${(i.tags||[]).map(t=>`<span class="dg-tag">${esc(t)}</span>`).join('')}
+          <span class="dg-src">${esc(i.source)}</span></span>
+      </a>
+    </li>`).join('');
+
+  $('#digest').hidden = false;
+  $('#digestX').addEventListener('click', () => {
+    try { localStorage.setItem(DIGEST_SEEN, day); } catch {}
+    $('#digest').hidden = true;
+  });
+}
+
 /* ============================ CALENDAR EXPORT ============================
    Reminders without a backend. Push would need a server awake at the right
    moment; a calendar file hands the job to the phone's own scheduler, which
@@ -747,6 +791,7 @@ function wireInstall(){
 
 loadLocal();
 wireTabs(); wireAdvisor(); wireInstall(); wireSettings(); renderAnniv(); renderPerks(); render();
+loadDigest();
 
 if (syncOn()) { setDot('on'); pull().then(render).catch(() => setDot('err')); }
 else setDot('local');
