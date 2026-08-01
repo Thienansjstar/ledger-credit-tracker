@@ -1,10 +1,14 @@
 name: Card news digest
 
+# Schedule disabled: a daily Claude Routine now writes digest.json using web
+# search, which reaches offers these six feeds never carry. Two writers on one
+# file would overwrite each other, so only one may be scheduled at a time.
+#
+# This workflow is kept as the free fallback. To go back to RSS, delete the
+# Routine and restore:
+#   schedule:
+#     - cron: '0 14 * * *'
 on:
-  # 14:00 UTC — morning in US Pacific. GitHub delays cron under load, so
-  # treat the time as approximate.
-  schedule:
-    - cron: '0 14 * * *'
   # Manual runs default to NOT committing, so the feed can be inspected
   # without touching the repo.
   workflow_dispatch:
@@ -35,9 +39,10 @@ jobs:
       - name: Show digest.json
         run: cat digest.json
 
-      # A schedule event carries no inputs, so `inputs.commit` is empty there.
-      # Checking only that would mean the daily run never commits anything —
-      # the workflow would look healthy and the site would never update.
+      # The schedule clause is kept in the condition so restoring the cron is a
+      # one-line change: a schedule event carries no inputs, so testing
+      # `inputs.commit` alone would mean a scheduled run never commits — green
+      # workflow, site never updates.
       - name: Commit if asked
         if: ${{ github.event_name == 'schedule' || inputs.commit }}
         run: |
