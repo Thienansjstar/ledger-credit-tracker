@@ -1,0 +1,45 @@
+name: Card news digest
+
+# No schedule yet — deliberately manual until the feed list is proven.
+# Run with commit=false to see what it finds without touching the repo.
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: 'Commit digest.json back to the repo'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Logs one line per feed: how many items it returned and how many matched.
+      # That is what tells us which feed URLs are actually correct.
+      - name: Build digest
+        run: node scripts/build-digest.mjs
+
+      - name: Show digest.json
+        run: cat digest.json
+
+      - name: Commit if asked
+        if: ${{ inputs.commit }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- digest.json; then
+            echo "digest.json unchanged — nothing to commit"
+            exit 0
+          fi
+          git add digest.json
+          git commit -m "Update card news digest"
+          git push

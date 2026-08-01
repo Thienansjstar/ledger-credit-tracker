@@ -1,0 +1,137 @@
+#!/usr/bin/env node
+/* Builds digest.json — the daily strip at the top of the Credits tab.
+ *
+ * Reads a handful of points-blog RSS feeds, keeps only what touches the cards
+ * in this wallet or a transfer bonus on the programs they earn, and writes the
+ * result next to index.html. No dependencies: fetch plus a small regex parse.
+ *
+ * Deliberately headlines-and-links only. Nothing here summarises or interprets
+ * a card benefit, and nothing here may edit CARDS or PERKS in app.js — those
+ * carry a human verification date, and a feed scraper has no business
+ * overwriting them.
+ *
+ *   node scripts/build-digest.mjs            # real feeds
+ *   FEEDS_BASE=http://127.0.0.1:8877 node …  # local mock, for testing
+ */
+
+import { writeFileSync } from 'node:fs';
+
+const MAX_AGE_DAYS = 10;   // a two-week-old headline is not news
+const MAX_ITEMS    = 3;
+
+const FEEDS = [
+  ['Frequent Miler',    'https://frequentmiler.com/feed/'],
+  ['Doctor of Credit',  'https://www.doctorofcredit.com/feed/'],
+  ['One Mile at a Time','https://onemileatatime.com/feed/'],
+  ['Thrifty Traveler',  'https://thriftytraveler.com/feed/'],
+  ['View from the Wing','https://viewfromthewing.com/feed/'],
+  ['Miles to Memories', 'https://milestomemories.com/feed/'],
+];
+
+/* A hit on any of these is what makes an item worth surfacing. Tags are what
+   the strip shows as a label, so keep them short. */
+const MATCHERS = [
+  [/sapphire reserve/i,                 'Sapphire Reserve'],
+  [/sapphire preferred/i,               'Sapphire Preferred'],
+  [/venture x/i,                        'Venture X'],
+  [/freedom unlimited/i,                'Freedom Unlimited'],
+  [/discover it/i,                      'Discover it'],
+  [/transfer bonus/i,                   'Transfer bonus'],
+  [/ultimate rewards/i,                 'Ultimate Rewards'],
+  [/capital one (miles|travel|loung)/i, 'Capital One'],
+  /* Benefits get written about without the card ever being named. A headline
+     reading "Chase Sapphire Lounges Cut Priority Pass Access" matches none of
+     the card names above, yet it is the most relevant thing a Reserve holder
+     could read that week. These catch the benefit-shaped stories. */
+  [/sapphire loung/i,                   'Sapphire Lounge'],
+  [/priority pass/i,                    'Priority Pass'],
+  [/\bIHG\b/,                           'IHG'],
+  [/global entry|tsa precheck/i,        'Global Entry'],
+  [/hertz/i,                            'Hertz'],
+  [/dashpass|doordash/i,                'DoorDash'],
+];
+
+const strip = s => s
+  .replace(/<!\[CDATA\[|\]\]>/g, '')
+  .replace(/<[^>]+>/g, '')
+  .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n))
+  .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+  .replace(/&quot;/g, '"').replace(/&#x27;|&apos;/g, "'").replace(/&nbsp;/g, ' ')
+  .replace(/\s+/g, ' ').trim();
+
+const tag = (re, xml) => { const m = xml.match(re); return m ? strip(m[1]) : ''; };
+
+function parseFeed(xml) {
+  const blocks = xml.match(/<(item|entry)\b[\s\S]*?<\/\1>/gi) || [];
+  return blocks.map(b => {
+    // Atom puts the URL in an attribute; RSS puts it in the element body.
+    const link = tag(/<link[^>]*>([^<]+)<\/link>/i, b) ||
+                 (b.match(/<link[^>]*href="([^"]+)"/i) || [])[1] || '';
+    return {
+      title: tag(/<title[^>]*>([\s\S]*?)<\/title>/i, b),
+      link,
+      date:  tag(/<(?:pubDate|published|updated)[^>]*>([\s\S]*?)<\/(?:pubDate|published|updated)>/i, b),
+    };
+  }).filter(i => i.title && i.link);
+}
+
+async function main() {
+  const base = process.env.FEEDS_BASE;   // set only when testing against a mock
+  const cutoff = Date.now() - MAX_AGE_DAYS * 86400000;
+  const seen = new Set();
+  const kept = [];
+
+  for (const [source, url] of FEEDS) {
+    const target = base ? `${base}/${source.toLowerCase().replace(/\s+/g, '-')}.xml` : url;
+    let items = [];
+    try {
+      const r = await fetch(target, {
+        headers: { 'User-Agent': 'ledger-credit-tracker/1.0 (+https://ledger-credit-tracker.netlify.app)' },
+        signal: AbortSignal.timeout(20000),
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      items = parseFeed(await r.text());
+    } catch (e) {
+      // One dead feed must not take the run down with it.
+      console.log(`  ${source.padEnd(20)} FAILED  ${e.message}`);
+      continue;
+    }
+
+    let hits = 0;
+    for (const it of items) {
+      const when = Date.parse(it.date);
+      if (Number.isFinite(when) && when < cutoff) continue;
+
+      const tags = MATCHERS.filter(([re]) => re.test(it.title)).map(([, t]) => t);
+      if (!tags.length) continue;
+
+      const key = it.title.toLowerCase();
+      if (seen.has(key)) continue;        // the same story runs on several blogs
+      seen.add(key);
+
+      kept.push({
+        title: it.title,
+        link: it.link,
+        source,
+        date: Number.isFinite(when) ? new Date(when).toISOString().slice(0, 10) : '',
+        tags: [...new Set(tags)].slice(0, 2),
+        ts: Number.isFinite(when) ? when : 0,
+      });
+      hits++;
+    }
+    console.log(`  ${source.padEnd(20)} ${String(items.length).padStart(3)} items, ${hits} matched`);
+  }
+
+  kept.sort((a, b) => b.ts - a.ts);
+  const items = kept.slice(0, MAX_ITEMS).map(({ ts, ...rest }) => rest);
+
+  writeFileSync('digest.json', JSON.stringify({
+    generated: new Date().toISOString(),
+    items,
+  }, null, 2) + '\n');
+
+  console.log(`\nWrote digest.json — ${items.length} item(s) from ${seen.size} match(es).`);
+  for (const i of items) console.log(`  · [${i.tags.join(', ')}] ${i.title}  (${i.source})`);
+}
+
+main().catch(e => { console.error('digest build failed:', e); process.exit(1); });
