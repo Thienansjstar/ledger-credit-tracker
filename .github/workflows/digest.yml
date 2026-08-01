@@ -1,14 +1,16 @@
 name: Card news digest
 
-# Schedule disabled: a daily Claude Routine now writes digest.json using web
-# search, which reaches offers these six feeds never carry. Two writers on one
-# file would overwrite each other, so only one may be scheduled at a time.
-#
-# This workflow is kept as the free fallback. To go back to RSS, delete the
-# Routine and restore:
-#   schedule:
-#     - cron: '0 14 * * *'
+# This is the working daily digest. A Claude Routine using web search was
+# tried instead — it reaches offers these six feeds never carry — but the
+# sessions it fires get no repository access, so two test runs wrote nothing.
+# The Routine is disabled rather than deleted; if that access is granted,
+# remove this schedule before re-enabling it. Two writers on one file would
+# overwrite each other every day.
 on:
+  # 14:00 UTC — morning in US Pacific. GitHub delays cron under load, so
+  # treat the time as approximate.
+  schedule:
+    - cron: '0 14 * * *'
   # Manual runs default to NOT committing, so the feed can be inspected
   # without touching the repo.
   workflow_dispatch:
