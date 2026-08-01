@@ -72,14 +72,20 @@ const sig = t => new Set(t.toLowerCase()
   .split(/\s+/)
   .filter(w => w.length > 2 && !STOP.has(w)));
 
+/* Overlap coefficient — shared words over the *smaller* headline — rather
+   than Jaccard over the union. Two write-ups of one story rarely share their
+   filler, so the union grows and Jaccard collapses: "…Removing Priority Pass
+   Access & Increasing Layover Time Allowed" against "…Cut Priority Pass
+   Access: Probably Good News" scores only 0.40 on Jaccard and slipped
+   through, putting the same story in two of three slots. On overlap it is
+   0.60. The floor of three shared words still stops short headlines from
+   being merged for having a word or two in common. */
 function nearDuplicate(words, alreadyKept) {
   for (const prev of alreadyKept) {
     const shared = [...words].filter(w => prev.has(w)).length;
-    // Require real overlap as well as a high ratio, so two short headlines
-    // sharing a couple of words are not collapsed into one.
     if (shared < 3) continue;
-    const union = new Set([...words, ...prev]).size;
-    if (union && shared / union >= 0.5) return true;
+    const smaller = Math.min(words.size, prev.size);
+    if (smaller && shared / smaller >= 0.55) return true;
   }
   return false;
 }
